@@ -1,0 +1,164 @@
+#!??????????????????????????????????????????????????????????????????????????????????????????????????
+#!		THIS FILE WAS CREATED BY SK_AUTORELOAD (SKAR) THE HELPER FOR A BETTER WORKFLOW
+#!??????????????????????????????????????????????????????????????????????????????????????????????????
+
+
+variables:
+    {current_recipe::%player%} = 0
+    {current_step::%player%} = 0
+
+# set global variables of recipes
+# need to change loop count every time i add new recipe
+# :))))))))))))))))))))))))
+command /set_recipe:
+    trigger:
+        set {recipe_count} to 4
+        set {recipe1::*} to 1, 2 , 3
+        set {recipe2::*} to 3,4,5
+        set {recipe3::*} to 6,7,8
+        set {recipe4::*} to "maslo","Temperatura: 80","pieczarki","jajko", "pomidorek","ser","sol","Temperatura: 60","chlebek"
+        loop {recipe_count} times:
+            set {recipes::%loop-value%::*} to {recipe%loop-value%::*}
+
+
+command /check_recipe:
+    trigger:
+        send "%{current_recipe::%player%::*}%" to player
+
+command /gui:
+    trigger:
+
+
+        # Create random recipe for user
+        set {_random} to random integer between 1 and {recipe_count}
+        #set {current_recipe::%player%::*} to {recipes::%{_random}%::*}
+
+        # Not random for testng purposes
+        set {current_recipe::%player%::*} to {recipes::4::*}
+        send "%{current_recipe::%player%::*}%" to player
+        
+
+        # Set temperature to 0
+        set {temperature::%player%} to 0 
+        # Set starting step
+        set {current_step::%player%} to 1
+
+
+        # get how many steps there is in recipe
+        set {current_recipe_size::%player%} to 1
+        loop {current_recipe::%player%::*}:
+            add 1 to {current_recipe_size::%player%}
+        
+
+        set {_menu} to chest inventory with 6 rows named "Potion Minigame"
+        set slot 39 of {_menu} to green wool named "Zmniejsz temperature"
+        set slot 40 of {_menu} to yellow wool named "Utrzymaj temperature"
+        set slot 41 of {_menu} to red wool named "Zwieksz temperature"
+        set slot 53 of {_menu} to barrier named "Anuluj"
+        set slot 45 of {_menu} to emerald named "Zatwierdz"
+        set slot 48 of {_menu} to stick
+        set slot 49 of {_menu} to stick
+        set slot 50 of {_menu} to stick
+
+        set slot 9 of {_menu} to warped fungus named "pieczarki"
+        set slot 10 of {_menu} to egg
+        set slot 18 of {_menu} to kelp
+        set slot 19 of {_menu} to poppy
+        set slot 27 of {_menu} to redstone dust
+        set slot 28 of {_menu} to honey bottle named "maslo"
+
+        set slot 16 of {_menu} to golden apple named "ser"
+        set slot 17 of {_menu} to apple named "pomidorek"
+        set slot 25 of {_menu} to sugar named "sol"
+        set slot 26 of {_menu} to mushroom stew
+        set slot 34 of {_menu} to egg named "jajko"
+        set slot 35 of {_menu} to bread named "chlebek"
+
+        set slot 22 of {_menu} to Cauldron named "test" with lore "TEST"
+
+
+
+ #       loop 54 times:
+  #          if slot loop-number - 1 of {_menu} is empty:
+   #             set slot loop-number -1 of {_menu} to cobweb 
+        open {_menu} to player
+
+#
+on inventory click:
+    event-inventory is not player's inventory
+    if name of event-inventory is "Potion Minigame":
+        cancel event
+        set {_buttons::*} to emerald , barrier, red wool, green wool, yellow wool
+
+        # change current temperatuire
+        if event-slot is  wool:    
+            set {temperature::%player%} to set_temperature({temperature::%player%},event-inventory,event-slot) 
+        # Cancel player's choice
+        else if event-slot is barrier:
+            set slot 13 of event-inventory to air
+            send "%{current_recipe::%player%::*}%" to player
+
+        # Accept player's choice
+        else if event-slot is emerald:
+            set {_name} to slot 13 of event-inventory's name
+            if {_name} is {current_recipe::%player%::%{current_step::%player%}%}:
+                add 1 to {current_step::%player%}
+                send "Dobrze" to player
+            else:
+                set {current_step::%player%} to 1
+                send "Reseting " to player
+                send "%{current_recipe::%player%::*}%" to player
+            if {current_step::%player%} = {current_recipe_size::%player%}:
+                close player's inventory
+                give player mushroom stew named "Jajecznica"
+
+        # Show current action
+        else if contains_fix({_buttons::*},event-slot) is false:
+            set slot 13 of event-inventory to event-slot
+
+
+        # C
+           
+            
+
+# Delete current recipe after minigame window has been closed
+on inventory close:
+    if name of event-inventory is "Potion Minigame":
+        delete {current_recipe::%player%::*}
+
+
+
+function contains_fix(list: objects, check: object) :: boolean:
+    loop {_list::*}:
+        if loop-value is {_check}:
+            return true
+    return false
+
+
+function set_temperature(temperature: object, inventory: object, color: object) :: integer:
+    if {_color} is red wool:
+        if {_temperature} < 100:
+            add 20 to {_temperature}
+            set {_slot} to {_temperature}/20 +1 
+            set slot {_slot} of {_inventory} to blaze powder
+            
+
+    else if {_color} is green wool:
+        if {_temperature} > 0:
+            set {_slot} to {_temperature}/20 +1 
+            remove 20 from {_temperature}
+            set slot {_slot} of {_inventory} to air
+
+    if {_temperature} > 40:
+        set slot 13 of {_inventory} to red wool named "Temperatura: %{_temperature}%"
+    else if {_temperature} <= 40:
+        set slot 13 of {_inventory} to green wool named "Temperatura: %{_temperature}%"
+
+
+    return {_temperature}
+        
+
+    #set {_temperature} to {_temperature}/20
+    #loop {_temperature} times:
+      #  send loop-value to console
+    
